@@ -776,7 +776,7 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
         clearComposingText();
 
         // Don't build a token for an empty String
-        if (selectedObject == null || selectedObject.toString().equals("")) return;
+        if (selectedObject == null || selectedObject.toString() == null || selectedObject.toString().equals("")) return;
 
         SpannableStringBuilder ssb = buildSpannableForText(text);
         TokenImageSpan tokenSpan = buildSpanForObject(selectedObject);
