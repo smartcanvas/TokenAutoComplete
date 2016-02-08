@@ -98,6 +98,11 @@ abstract public class FilteredArrayAdapter<T> extends ArrayAdapter<T> {
         return filter;
     }
 
+    public void setOriginalObjects(List<T> objects)  {
+        originalObjects = objects;
+        notifyDataSetChanged();
+    }
+
     /**
      * Filter method used by the adapter. Return true if the object should remain in the list
      *
