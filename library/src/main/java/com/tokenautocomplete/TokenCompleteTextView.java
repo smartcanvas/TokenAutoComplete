@@ -473,7 +473,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
     public void performCompletion() {
         if (getListSelection() == ListView.INVALID_POSITION && enoughToFilter()) {
             Object bestGuess;
-            if (getAdapter().getCount() > 0 && performBestGuess) {
+            if (getAdapter() != null && getAdapter().getCount() > 0 && performBestGuess) {
                 bestGuess = getAdapter().getItem(0);
             } else {
                 bestGuess = defaultObject(currentCompletionText());
@@ -795,7 +795,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         clearComposingText();
 
         // Don't build a token for an empty String
-        if (selectedObject == null || selectedObject.toString().equals("")) return;
+        if (selectedObject == null || selectedObject.toString() == null || selectedObject.toString().equals("")) return;
 
         SpannableStringBuilder ssb = buildSpannableForText(text);
         TokenImageSpan tokenSpan = buildSpanForObject(selectedObject);
