@@ -222,7 +222,12 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
             if (hintVisible) {
                 filter.filter("");
             } else {
-                filter.filter(text.subSequence(start, end), this);
+                CharSequence charSequence = text.subSequence(start, end);
+                filter.filter(charSequence, this);
+
+                if (listener != null) {
+                    listener.onTextChanged(charSequence.toString());
+                }
             }
         }
     }
@@ -1228,6 +1233,12 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
         void onTokenAdded(T token);
 
         void onTokenRemoved(T token);
+
+        /**
+         * PexLabs - callback when user typed in new text
+         * @param newText - newText
+         */
+        void onTextChanged(String newText);
     }
 
     private class TokenSpanWatcher implements SpanWatcher {
