@@ -14,6 +14,7 @@ import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.Layout;
+import android.text.NoCopySpan;
 import android.text.Selection;
 import android.text.SpanWatcher;
 import android.text.Spannable;
@@ -1178,7 +1179,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         invalidate();
     }
 
-    protected class TokenImageSpan extends ViewSpan {
+    protected class TokenImageSpan extends ViewSpan implements NoCopySpan {
         private T token;
 
         public TokenImageSpan(View d, T token, int maxWidth) {
