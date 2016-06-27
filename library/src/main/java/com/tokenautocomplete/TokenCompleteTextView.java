@@ -90,7 +90,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
     private TokenSpanWatcher spanWatcher;
     private TokenTextWatcher textWatcher;
     private ArrayList<T> objects;
-    private List<TokenCompleteTextView<T>.TokenImageSpan> hiddenSpans;
+    private List<TokenImageSpan<T>> hiddenSpans;
     private TokenDeleteStyle deletionStyle = TokenDeleteStyle._Parent;
     private TokenClickStyle tokenClickStyle = TokenClickStyle.None;
     private CharSequence prefix = "";
@@ -138,7 +138,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         if (initialized) return;
 
         // Initialise variables
-        setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
+        setTokenizer(new CommaTokenizer());
         objects = new ArrayList<>();
         Editable text = getText();
         assert null != text;
@@ -280,6 +280,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
      *
      * @param p String with the hint
      */
+    @SuppressWarnings("unused")
     public void setPrefix(CharSequence p) {
         //Have to clear and set the actual text before saving the prefix to avoid the prefix filter
         prefix = "";
@@ -435,7 +436,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             }
 
             //Replace token spans
-            TokenImageSpan[] tokens = text.getSpans(i, i, TokenImageSpan.class);
+            TokenImageSpan<T>[] tokens = getSpans(text, i, i);
             if (tokens.length > 0) {
                 TokenImageSpan token = tokens[0];
                 description = description.append(tokenizer.terminateToken(token.getToken().toString()));
@@ -620,7 +621,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             Editable text = getText();
             if (text == null) return handled;
 
-            TokenImageSpan[] spans = text.getSpans(0, text.length(), TokenImageSpan.class);
+            TokenImageSpan<T>[] spans = getSpans(text, 0, text.length());
             for (TokenImageSpan span : spans) {
                 if (span.view.isSelected()) {
                     removeSpan(span);
@@ -656,7 +657,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             int offset = getOffsetForPosition(event.getX(), event.getY());
 
             if (offset != -1) {
-                TokenImageSpan[] links = text.getSpans(offset, offset, TokenImageSpan.class);
+                TokenImageSpan<T>[] links = getSpans(text, offset, offset);
 
                 if (links.length > 0) {
                     links[0].onClick();
@@ -699,7 +700,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             Editable text = getText();
             if (text != null) {
                 //Make sure if we are in a span, we select the spot 1 space after the span end
-                TokenImageSpan[] spans = text.getSpans(selStart, selEnd, TokenImageSpan.class);
+                TokenImageSpan<T>[] spans = getSpans(text, selStart, selEnd);
                 for (TokenImageSpan span : spans) {
                     int spanEnd = text.getSpanEnd(span);
                     if (selStart <= spanEnd && text.getSpanStart(span) < selStart) {
@@ -737,7 +738,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             if (text != null && lastLayout != null) {
                 // Display +x thingy if appropriate
                 int lastPosition = lastLayout.getLineVisibleEnd(0);
-                TokenImageSpan[] tokens = text.getSpans(0, lastPosition, TokenImageSpan.class);
+                TokenImageSpan<T>[] tokens = getSpans(text, 0, lastPosition);
                 int count = objects.size() - tokens.length;
 
                 // Make sure we don't add more than 1 CountSpan
@@ -771,8 +772,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
                     // Remove all spans behind the count span and hold them in the hiddenSpans List
                     // The generic type information is not captured in TokenImageSpan.class so we have
                     // to perform a cast for the returned spans to coerce them to the proper generic type.
-                    hiddenSpans = new ArrayList<>(Arrays.asList(
-                            (TokenImageSpan[]) text.getSpans(lastPosition + cs.text.length(), text.length(), TokenImageSpan.class)));
+                    hiddenSpans = new ArrayList<>(Arrays.asList(getSpans(text, lastPosition + cs.text.length(), text.length())));
                     for (TokenImageSpan span : hiddenSpans) {
                         removeSpan(span);
                     }
@@ -788,7 +788,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
                 }
 
                 // Restore the spans we have hidden
-                for (TokenImageSpan span : hiddenSpans) {
+                for (TokenImageSpan<T> span : hiddenSpans) {
                     insertSpan(span);
                 }
                 hiddenSpans.clear();
@@ -815,6 +815,11 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         }
         // Start the spanwatcher
         focusChanging = false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private TokenImageSpan<T>[] getSpans(Editable text, int start, int length) {
+        return text.getSpans(start, length, TokenImageSpan.class);
     }
 
     @Override
@@ -856,12 +861,12 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         return new SpannableStringBuilder(String.valueOf(sentinel) + tokenizer.terminateToken(text));
     }
 
-    protected TokenImageSpan buildSpanForObject(T obj) {
+    protected TokenImageSpan<T> buildSpanForObject(T obj) {
         if (obj == null) {
             return null;
         }
         View tokenView = getViewForObject(obj);
-        return new TokenImageSpan(tokenView, obj, (int) maxTextWidth());
+        return new TokenImageSpan<>(tokenView, obj, (int) maxTextWidth(), this);
     }
 
     @Override
@@ -872,7 +877,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         if (selectedObject == null || selectedObject.toString() == null || selectedObject.toString().equals("")) return;
 
         SpannableStringBuilder ssb = buildSpannableForText(text);
-        TokenImageSpan tokenSpan = buildSpanForObject(selectedObject);
+        TokenImageSpan<T> tokenSpan = buildSpanForObject(selectedObject);
 
         Editable editable = getText();
         int cursorPosition = getSelectionEnd();
@@ -944,6 +949,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
      *
      * @param object object to remove, may be null or not in the view
      */
+    @SuppressWarnings("unused")
     public void removeObject(final T object) {
         post(new Runnable() {
             @Override
@@ -969,7 +975,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
                 updateCountSpan();
 
                 // If the object is currently visible, remove it
-                TokenImageSpan[] spans = text.getSpans(0, text.length(), TokenImageSpan.class);
+                TokenImageSpan<T>[] spans = getSpans(text, 0, text.length());
                 for (TokenImageSpan span : spans) {
                     if (span.getToken().equals(object)) {
                         removeSpan(span);
@@ -1030,7 +1036,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
      */
     private void insertSpan(T object, CharSequence sourceText) {
         SpannableStringBuilder ssb = buildSpannableForText(sourceText);
-        TokenImageSpan tokenSpan = buildSpanForObject(object);
+        TokenImageSpan<T> tokenSpan = buildSpanForObject(object);
 
         Editable editable = getText();
         if (editable == null) return;
@@ -1082,7 +1088,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         insertSpan(object, spanString);
     }
 
-    private void insertSpan(TokenImageSpan span) {
+    private void insertSpan(TokenImageSpan<T> span) {
         insertSpan(span.getToken());
     }
 
@@ -1102,7 +1108,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
                 if (text == null) return;
 
                 // Get all spans in the EditText and remove them
-                TokenImageSpan[] spans = text.getSpans(0, text.length(), TokenImageSpan.class);
+                TokenImageSpan<T>[] spans = getSpans(text, 0, text.length());
                 for (TokenImageSpan span : spans) {
                     removeSpan(span);
 
@@ -1172,19 +1178,21 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         Editable text = getText();
         if (text == null) return;
 
-        TokenImageSpan[] tokens = text.getSpans(0, text.length(), TokenImageSpan.class);
+        TokenImageSpan<T>[] tokens = getSpans(text, 0, text.length());
         for (TokenImageSpan token : tokens) {
             token.view.setSelected(false);
         }
         invalidate();
     }
 
-    protected class TokenImageSpan extends ViewSpan implements NoCopySpan {
+    protected static class TokenImageSpan<T> extends ViewSpan implements NoCopySpan {
         private T token;
+        final TokenCompleteTextView<T> parent;
 
-        public TokenImageSpan(View d, T token, int maxWidth) {
+        public TokenImageSpan(View d, T token, int maxWidth, TokenCompleteTextView<T> parent) {
             super(d, maxWidth);
             this.token = token;
+            this.parent = parent;
         }
 
         public T getToken() {
@@ -1192,35 +1200,35 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         }
 
         public void onClick() {
-            Editable text = getText();
+            Editable text = parent.getText();
             if (text == null) return;
 
-            switch (tokenClickStyle) {
+            switch (parent.tokenClickStyle) {
                 case Select:
                 case SelectDeselect:
 
                     if (!view.isSelected()) {
-                        clearSelections();
+                        parent.clearSelections();
                         view.setSelected(true);
                         break;
                     }
 
-                    if (tokenClickStyle == TokenClickStyle.SelectDeselect || !isTokenRemovable(token)) {
+                    if (parent.tokenClickStyle == TokenClickStyle.SelectDeselect || !parent.isTokenRemovable(token)) {
                         view.setSelected(false);
-                        invalidate();
+                        parent.invalidate();
                         break;
                     }
                     //If the view is already selected, we want to delete it
                 case Delete:
-                    if (isTokenRemovable(token)) {
-                        removeSpan(this);
+                    if (parent.isTokenRemovable(token)) {
+                        parent.removeSpan(this);
                     }
                     break;
                 case None:
                 default:
-                    if (getSelectionStart() != text.getSpanEnd(this) + 1) {
+                    if (parent.getSelectionStart() != text.getSpanEnd(this) + 1) {
                         //Make sure the selection is not in the middle of the span
-                        setSelection(text.getSpanEnd(this) + 1);
+                        parent.setSelection(text.getSpanEnd(this) + 1);
                     }
             }
         }
@@ -1237,8 +1245,8 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         @SuppressWarnings("unchecked cast")
         @Override
         public void onSpanAdded(Spannable text, Object what, int start, int end) {
-            if (what instanceof TokenCompleteTextView<?>.TokenImageSpan && !savingState && !focusChanging) {
-                TokenImageSpan token = (TokenImageSpan) what;
+            if (what instanceof TokenImageSpan && !savingState && !focusChanging) {
+                TokenImageSpan<T> token = (TokenImageSpan) what;
                 objects.add(token.getToken());
 
                 if (listener != null)
@@ -1249,8 +1257,8 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         @SuppressWarnings("unchecked cast")
         @Override
         public void onSpanRemoved(Spannable text, Object what, int start, int end) {
-            if (what instanceof TokenCompleteTextView<?>.TokenImageSpan && !savingState && !focusChanging) {
-                TokenImageSpan token = (TokenImageSpan) what;
+            if (what instanceof TokenImageSpan && !savingState && !focusChanging) {
+                TokenImageSpan<T> token = (TokenImageSpan) what;
                 if (objects.contains(token.getToken())) {
                     objects.remove(token.getToken());
                 }
@@ -1288,7 +1296,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
                     start -= 1;
                 }
 
-                TokenImageSpan[] spans = text.getSpans(start, end, TokenImageSpan.class);
+                TokenImageSpan<T>[] spans = getSpans(text, start, end);
 
                 //NOTE: I'm not completely sure this won't cause problems if we get stuck in a text changed loop
                 //but it appears to work fine. Spans will stop getting removed if this breaks.
@@ -1481,8 +1489,8 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         }
 
         @SuppressWarnings("hiding")
-        public static final Parcelable.Creator<SavedState> CREATOR
-                = new Parcelable.Creator<SavedState>() {
+        public static final Creator<SavedState> CREATOR
+                = new Creator<SavedState>() {
             public SavedState createFromParcel(Parcel in) {
                 return new SavedState(in);
             }
@@ -1509,11 +1517,11 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         int startSelection = beforeLength == 1 ? getSelectionStart() : endSelection - beforeLength;
 
         Editable text = getText();
-        TokenImageSpan[] spans = text.getSpans(0, text.length(), TokenImageSpan.class);
+        TokenImageSpan<T>[] spans = getSpans(text, 0, text.length());
 
         // Iterate over all tokens and allow the deletion
         // if there are no tokens not removable in the selection
-        for (TokenImageSpan span : spans) {
+        for (TokenImageSpan<T> span : spans) {
             int startTokenSelection = text.getSpanStart(span);
             int endTokenSelection = text.getSpanEnd(span);
 
