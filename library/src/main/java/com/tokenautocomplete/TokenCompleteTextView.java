@@ -37,7 +37,6 @@ import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Filter;
 import android.widget.ListView;
-import android.widget.MultiAutoCompleteTextView;
 import android.widget.TextView;
 
 import java.io.Serializable;
@@ -224,7 +223,12 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             if (hintVisible) {
                 filter.filter("");
             } else {
-                filter.filter(text.subSequence(start, end), this);
+                CharSequence charSequence = text.subSequence(start, end);
+                filter.filter(charSequence, this);
+
+                if (listener != null) {
+                    listener.onTextChanged(charSequence.toString());
+                }
             }
         }
     }
@@ -1238,6 +1242,12 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         void onTokenAdded(T token);
 
         void onTokenRemoved(T token);
+
+        /**
+         * PexLabs - callback when user typed in new text
+         * @param newText - newText
+         */
+        void onTextChanged(String newText);
     }
 
     private class TokenSpanWatcher implements SpanWatcher {
